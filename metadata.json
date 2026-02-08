@@ -1,0 +1,11 @@
+
+{
+  "name": "GeminiChat Pro",
+  "description": "A high-fidelity WhatsApp-inspired real-time chat application featuring AI-powered conversations, media sharing, and immersive calling interfaces.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation",
+    "display-capture"
+  ]
+}

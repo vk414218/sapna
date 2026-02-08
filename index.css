@@ -1,0 +1,30 @@
+/* Basic styles for Gemini Chat Pro */
+body {
+  background: #0b141a;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+#root {
+  min-height: 100vh;
+  min-width: 100vw;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+/* Hide scrollbars for a cleaner look */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+}
+
+/* Utility classes */
+.text-center { text-align: center; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
