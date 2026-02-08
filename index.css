@@ -28,3 +28,15 @@ body {
 .flex { display: flex; }
 .items-center { align-items: center; }
 .justify-center { justify-content: center; }
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+  
+  #root {
+    min-width: 100vw;
+    overflow-x: hidden;
+  }
+}

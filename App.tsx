@@ -183,9 +183,9 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <div className="flex flex-1 h-full overflow-hidden relative shadow-2xl max-w-[1600px] mx-auto w-full bg-[#111b21]">
+      <div className="flex flex-col md:flex-row flex-1 h-full overflow-hidden relative shadow-2xl max-w-[1600px] mx-auto w-full bg-[#111b21]">
         {/* Navigation Sidebar */}
-        <div className="w-[64px] border-r border-[#313d45] flex flex-col items-center py-4 gap-6 bg-[#202c33] z-20">
+        <div className="hidden md:flex w-[64px] border-r border-[#313d45] flex-col items-center py-4 gap-6 bg-[#202c33] z-20">
            <button onClick={() => setSidebarTab('chats')} className={`p-2 rounded-lg transition-colors ${sidebarTab === 'chats' ? 'text-[#00a884] bg-white/5' : 'text-[#8696a0] hover:text-white'}`} title="Chats">
              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
            </button>
@@ -210,7 +210,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Sidebar */}
-        <div className="relative w-[30%] min-w-[320px] max-w-[450px] flex overflow-hidden border-r border-[#313d45]">
+        <div className="relative w-full md:w-[30%] md:min-w-[320px] md:max-w-[450px] flex overflow-hidden border-r border-[#313d45]">
           <ChatSidebar 
             chats={chats} 
             activeChatId={activeChat?.id || null} 
