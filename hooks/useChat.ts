@@ -55,16 +55,32 @@ export const useChat = () => {
   }, [chats]);
 
   const loginUser = (user: User) => {
-    setCurrentUser(user);
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(user));
+    // Set user status to online
+    const userWithOnlineStatus = { ...user, status: 'online' as const };
+    setCurrentUser(userWithOnlineStatus);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(userWithOnlineStatus));
     
-    // Register globally
+    // Register globally and update status
     const globalUsersRaw = localStorage.getItem('global_registered_users');
     let globalUsers: User[] = globalUsersRaw ? JSON.parse(globalUsersRaw) : [];
-    if (!globalUsers.find(u => u.phone === user.phone)) {
-      globalUsers.push(user);
-      localStorage.setItem('global_registered_users', JSON.stringify(globalUsers));
+    
+    // Check if user exists by phone or id
+    const existingUserIndex = globalUsers.findIndex(u => u.phone === user.phone || u.id === user.id);
+    if (existingUserIndex >= 0) {
+      // Update existing user with online status
+      globalUsers[existingUserIndex] = { ...globalUsers[existingUserIndex], ...userWithOnlineStatus, status: 'online' };
+    } else {
+      // Add new user with online status
+      globalUsers.push(userWithOnlineStatus);
     }
+    
+    localStorage.setItem('global_registered_users', JSON.stringify(globalUsers));
+    
+    // Trigger storage event for other tabs/windows
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'global_registered_users',
+      newValue: JSON.stringify(globalUsers)
+    }));
   };
 
   const updateProfile = (name: string, statusText: string, avatar: string) => {

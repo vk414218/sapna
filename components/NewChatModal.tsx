@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { User } from '../types';
 import { COLORS } from '../constants';
 
@@ -16,15 +16,37 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onSelectUser, onCreateGroup
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<User[]>([]);
+  const [userListVersion, setUserListVersion] = useState(0);
   
   const colors = isDarkMode ? COLORS.whatsappDark : COLORS.whatsappLight;
+
+  // Listen for storage changes to update user list in real-time
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'global_registered_users') {
+        setUserListVersion(v => v + 1);
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also poll every 5 seconds for same-window updates
+    const interval = setInterval(() => {
+      setUserListVersion(v => v + 1);
+    }, 5000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   const allUsers = useMemo(() => {
     const raw = localStorage.getItem('global_registered_users');
     const users: User[] = raw ? JSON.parse(raw) : [];
     // Filter out self
     return users.filter(u => u.id !== currentUser?.id);
-  }, [currentUser]);
+  }, [currentUser, userListVersion]);
 
   const filteredContacts = allUsers.filter(contact =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
