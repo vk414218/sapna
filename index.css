@@ -28,3 +28,44 @@ body {
 .flex { display: flex; }
 .items-center { align-items: center; }
 .justify-center { justify-content: center; }
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Larger tap targets */
+  button, a {
+    min-height: 44px;
+  }
+  
+  /* Prevent zoom on input focus */
+  input, textarea, select {
+    font-size: 16px;
+  }
+  
+  /* Full width on mobile */
+  .max-w-\[1600px\] {
+    max-width: 100vw;
+  }
+}
+
+/* Smooth transitions for mobile navigation */
+.chat-sidebar-enter {
+  transform: translateX(-100%);
+}
+
+.chat-sidebar-enter-active {
+  transform: translateX(0);
+  transition: transform 300ms ease-in-out;
+}
+
+.chat-window-enter {
+  transform: translateX(100%);
+}
+
+.chat-window-enter-active {
+  transform: translateX(0);
+  transition: transform 300ms ease-in-out;
+}

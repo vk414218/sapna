@@ -10,6 +10,8 @@ interface ChatWindowProps {
   currentUser: User;
   isDarkMode: boolean;
   onStartCall: (type: 'audio' | 'video') => void;
+  onBack?: () => void;
+  showBackButton?: boolean;
 }
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ 
@@ -17,7 +19,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   onSendMessage, 
   currentUser, 
   isDarkMode,
-  onStartCall
+  onStartCall,
+  onBack,
+  showBackButton = false
 }) => {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -127,6 +131,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       {/* Header */}
       <div className="p-3 px-4 flex justify-between items-center z-10 shadow-sm" style={{ backgroundColor: colors.panel }}>
         <div className="flex items-center gap-3 cursor-pointer">
+          {showBackButton && (
+            <button onClick={onBack} className="p-2 hover:bg-white/5 rounded-full md:hidden text-[#8696a0] hover:text-white transition">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+            </button>
+          )}
           <img src={chatAvatar} alt={chatName} className="w-10 h-10 rounded-full object-cover shadow-sm" />
           <div className="flex flex-col">
             <h3 className="text-sm font-semibold truncate max-w-[200px]" style={{ color: colors.textPrimary }}>{chatName}</h3>
@@ -175,7 +186,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="p-2 flex items-center gap-1" style={{ backgroundColor: colors.panel }}>
+      <div className="p-3 md:p-2 flex items-center gap-1" style={{ backgroundColor: colors.panel }}>
         {isRecording ? (
           <div className="flex-1 flex items-center justify-between px-4 animate-pulse">
             <div className="flex items-center gap-3">
@@ -184,7 +195,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             </div>
             <div className="flex items-center gap-4">
               <button onClick={() => setIsRecording(false)} className="text-red-500 font-semibold text-sm">Cancel</button>
-              <button onClick={handleSendVoice} className="bg-[#00a884] p-3 rounded-full text-white">
+              <button onClick={handleSendVoice} className="bg-[#00a884] p-3 rounded-full text-white min-w-[48px] min-h-[48px] flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </div>
@@ -205,7 +216,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               <input 
                 type="text" 
                 placeholder="Type a message" 
-                className="w-full py-2.5 px-4 rounded-lg outline-none text-sm"
+                className="w-full py-3 md:py-2.5 px-4 rounded-lg outline-none text-base md:text-sm min-h-[48px]"
                 style={{ backgroundColor: isDarkMode ? '#2a3942' : '#ffffff', color: colors.textPrimary }}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -213,11 +224,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               />
             </div>
             {input ? (
-              <button onClick={handleSend} className="p-2 text-[#8696a0] hover:text-[#00a884] transition active:scale-90">
+              <button onClick={handleSend} className="p-3 md:p-2 text-[#8696a0] hover:text-[#00a884] transition active:scale-90 min-w-[48px] min-h-[48px] flex items-center justify-center">
                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             ) : (
-              <button onClick={() => setIsRecording(true)} className="p-2 text-[#8696a0] hover:text-[#00a884] transition active:scale-90">
+              <button onClick={() => setIsRecording(true)} className="p-3 md:p-2 text-[#8696a0] hover:text-[#00a884] transition active:scale-90 min-w-[48px] min-h-[48px] flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
               </button>
             )}
