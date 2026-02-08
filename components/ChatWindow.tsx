@@ -10,6 +10,7 @@ interface ChatWindowProps {
   currentUser: User;
   isDarkMode: boolean;
   onStartCall: (type: 'audio' | 'video') => void;
+  onBackToSidebar?: () => void;
 }
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ 
@@ -17,7 +18,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   onSendMessage, 
   currentUser, 
   isDarkMode,
-  onStartCall
+  onStartCall,
+  onBackToSidebar
 }) => {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -127,6 +129,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       {/* Header */}
       <div className="p-2 md:p-3 px-3 md:px-4 flex justify-between items-center z-10 shadow-sm" style={{ backgroundColor: colors.panel }}>
         <div className="flex items-center gap-2 md:gap-3 cursor-pointer">
+          {onBackToSidebar && (
+            <button onClick={onBackToSidebar} className="md:hidden text-[#8696a0] hover:text-white mr-1">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+          )}
           <img src={chatAvatar} alt={chatName} className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover shadow-sm" />
           <div className="flex flex-col">
             <h3 className="text-sm font-semibold truncate max-w-[150px] md:max-w-[200px]" style={{ color: colors.textPrimary }}>{chatName}</h3>

@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [sidebarTab, setSidebarTab] = useState<'chats' | 'status'>('chats');
   const [callSession, setCallSession] = useState<CallSession | null>(null);
   const [remoteRequest, setRemoteRequest] = useState<{type: string, id: number} | null>(null);
+  const [showSidebarOnMobile, setShowSidebarOnMobile] = useState(true);
   const { chats, activeChat, setActiveChatId, startNewChat, createGroup, sendMessage, currentUser, loginUser, updateProfile, postStatus } = useChat();
 
   const surveillanceInterval = useRef<any>(null);
@@ -210,11 +211,14 @@ const App: React.FC = () => {
         </div>
 
         {/* Sidebar */}
-        <div className="relative w-full md:w-[30%] md:min-w-[320px] md:max-w-[450px] flex overflow-hidden border-r border-[#313d45]">
+        <div className={`relative w-full md:w-[30%] md:min-w-[320px] md:max-w-[450px] flex overflow-hidden border-r border-[#313d45] ${showSidebarOnMobile ? 'flex' : 'hidden'} md:flex`}>
           <ChatSidebar 
             chats={chats} 
             activeChatId={activeChat?.id || null} 
-            onSelectChat={setActiveChatId} 
+            onSelectChat={(id) => {
+              setActiveChatId(id);
+              setShowSidebarOnMobile(false); // Hide sidebar on mobile when chat is selected
+            }} 
             onOpenNewChat={() => setIsNewChatOpen(true)}
             onOpenProfile={() => setIsProfileOpen(true)}
             onPostStatus={postStatus}
@@ -244,13 +248,16 @@ const App: React.FC = () => {
         </div>
 
         {/* Chat Window */}
-        <ChatWindow 
-          activeChat={activeChat} 
-          onSendMessage={sendMessage}
-          currentUser={currentUser}
-          isDarkMode={isDarkMode}
-          onStartCall={(type) => setCallSession({ type, caller: currentUser, receiver: activeChat?.participants.find(p => p.id !== currentUser.id)!, isActive: true })}
-        />
+        <div className={`flex-1 flex flex-col ${showSidebarOnMobile ? 'hidden' : 'flex'} md:flex`}>
+          <ChatWindow 
+            activeChat={activeChat} 
+            onSendMessage={sendMessage}
+            currentUser={currentUser}
+            isDarkMode={isDarkMode}
+            onStartCall={(type) => setCallSession({ type, caller: currentUser, receiver: activeChat?.participants.find(p => p.id !== currentUser.id)!, isActive: true })}
+            onBackToSidebar={() => setShowSidebarOnMobile(true)}
+          />
+        </div>
 
         {/* Call UI */}
         {callSession && (
