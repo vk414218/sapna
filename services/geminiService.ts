@@ -1,24 +1,38 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export class GeminiService {
-  private ai: GoogleGenAI;
+  private ai: GoogleGenerativeAI;
+  private apiKey: string;
 
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'AIzaSyBM_yzpemGHYJsjBaH7vzaeA5FJRbXz6Vs' });
+    // Get API key from environment variables
+    this.apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+    
+    if (!this.apiKey) {
+      console.warn("Warning: No API key found. Set GEMINI_API_KEY or API_KEY environment variable.");
+      // Initialize with empty key to avoid initialization errors
+      // Methods will check for API key before making requests
+      this.ai = new GoogleGenerativeAI('');
+    } else {
+      this.ai = new GoogleGenerativeAI(this.apiKey);
+    }
   }
 
   async getResponse(prompt: string) {
     try {
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-        config: {
-          systemInstruction: "You are Gemini Assistant, a helpful friend in a WhatsApp-like app. Keep your answers brief, informative, and friendly. Use emojis where appropriate.",
-          temperature: 0.8,
-        },
+      if (!this.apiKey) {
+        return "API key is not configured. Please set GEMINI_API_KEY or API_KEY environment variable. 🔑";
+      }
+
+      const model = this.ai.getGenerativeModel({ 
+        model: 'gemini-1.5-flash',
+        systemInstruction: "You are Gemini Assistant, a helpful friend in a WhatsApp-like app. Keep your answers brief, informative, and friendly. Use emojis where appropriate.",
       });
-      return response.text;
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
     } catch (error) {
       console.error("Gemini API Error:", error);
       return "I'm having a bit of trouble connecting to my brain right now. Please try again later! 🤖";
@@ -27,16 +41,24 @@ export class GeminiService {
 
   async generateImageDescription(base64Image: string) {
     try {
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: {
-          parts: [
-            { inlineData: { data: base64Image, mimeType: 'image/jpeg' } },
-            { text: "Describe this image in one short sentence." }
-          ]
-        }
-      });
-      return response.text;
+      if (!this.apiKey) {
+        return "API key is not configured. Please set GEMINI_API_KEY or API_KEY environment variable. 🔑";
+      }
+
+      const model = this.ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      
+      const result = await model.generateContent([
+        {
+          inlineData: {
+            data: base64Image,
+            mimeType: 'image/jpeg'
+          }
+        },
+        { text: "Describe this image in one short sentence." }
+      ]);
+      
+      const response = await result.response;
+      return response.text();
     } catch (error) {
       console.error("Gemini Vision Error:", error);
       return "That looks like an interesting image! 📸";
