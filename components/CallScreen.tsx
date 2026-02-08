@@ -115,6 +115,10 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
 
   return (
     <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-[#0b141a] animate-in fade-in duration-300">
+      {/* Mock Call Notice */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-yellow-500/20 border border-yellow-500/50 text-yellow-300 px-4 py-2 rounded-lg text-xs z-50 backdrop-blur-sm">
+        ⚠️ Mock call - No real audio/video connection (Demo only)
+      </div>
       {session.type === 'video' ? (
         <div className="w-full h-full relative overflow-hidden">
           {status === 'Connected' ? (

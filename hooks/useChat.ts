@@ -49,10 +49,60 @@ export const useChat = () => {
   }, [currentUser]);
 
   useEffect(() => {
-    if (chats.length > 0) {
+    if (chats.length > 0 && currentUser) {
       localStorage.setItem(CHATS_KEY, JSON.stringify(chats));
+      localStorage.setItem(`chats_${currentUser.id}`, JSON.stringify(chats));
     }
-  }, [chats]);
+  }, [chats, currentUser]);
+
+  // Listen for chat updates from other tabs/sessions
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const handleChatUpdate = () => {
+      // Reload chats from global storage
+      const updatedChats = chats.map(chat => {
+        const globalChatData = localStorage.getItem(`global_chat_${chat.id}`);
+        if (globalChatData) {
+          try {
+            const globalChat = JSON.parse(globalChatData);
+            // Only update if there are new messages
+            if (globalChat.messages.length > chat.messages.length) {
+              return globalChat;
+            }
+          } catch (e) {
+            console.error('Error parsing global chat data', e);
+          }
+        }
+        return chat;
+      });
+      setChats(updatedChats);
+    };
+
+    // Poll for updates every 2 seconds
+    const pollInterval = setInterval(handleChatUpdate, 2000);
+
+    // Listen for storage events from other tabs
+    const handleStorageEvent = (e: StorageEvent) => {
+      if (e.key?.startsWith('global_chat_')) {
+        handleChatUpdate();
+      }
+    };
+
+    // Listen for custom chat update events
+    const handleCustomEvent = (e: Event) => {
+      handleChatUpdate();
+    };
+
+    window.addEventListener('storage', handleStorageEvent);
+    window.addEventListener('chatUpdated', handleCustomEvent);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('storage', handleStorageEvent);
+      window.removeEventListener('chatUpdated', handleCustomEvent);
+    };
+  }, [chats, currentUser]);
 
   const loginUser = (user: User) => {
     setCurrentUser(user);
@@ -150,7 +200,7 @@ export const useChat = () => {
     if (!activeChatId || !currentUser) return;
 
     const newMessage: Message = {
-      id: `msg-${Date.now()}`,
+      id: `msg-${Date.now()}_${Math.random()}`,
       senderId: currentUser.id,
       receiverId: activeChatId,
       content,
@@ -161,7 +211,7 @@ export const useChat = () => {
       duration
     };
 
-    setChats(prev => prev.map(chat => {
+    const updatedChats = chats.map(chat => {
       if (chat.id === activeChatId) {
         return {
           ...chat,
@@ -170,7 +220,23 @@ export const useChat = () => {
         };
       }
       return chat;
-    }));
+    });
+
+    setChats(updatedChats);
+
+    // Save to user-specific localStorage
+    if (currentUser) {
+      localStorage.setItem(`chats_${currentUser.id}`, JSON.stringify(updatedChats));
+    }
+
+    // Save to global shared storage so other users can see
+    const updatedChat = updatedChats.find(c => c.id === activeChatId);
+    if (updatedChat) {
+      localStorage.setItem(`global_chat_${activeChatId}`, JSON.stringify(updatedChat));
+    }
+
+    // Dispatch event so other tabs/sessions can update
+    window.dispatchEvent(new CustomEvent('chatUpdated', { detail: { chatId: activeChatId } }));
 
     if (activeChatId === 'chat-ai' && type === 'text') {
       const response = await geminiService.getResponse(content);
@@ -184,12 +250,23 @@ export const useChat = () => {
         type: 'text',
         isAi: true,
       };
-      setChats(prev => prev.map(chat => {
+      const chatsWithAi = updatedChats.map(chat => {
         if (chat.id === activeChatId) {
           return { ...chat, messages: [...chat.messages, aiMessage], lastMessage: aiMessage };
         }
         return chat;
-      }));
+      });
+      setChats(chatsWithAi);
+      
+      // Save AI response to storage as well
+      if (currentUser) {
+        localStorage.setItem(`chats_${currentUser.id}`, JSON.stringify(chatsWithAi));
+      }
+      const aiChat = chatsWithAi.find(c => c.id === activeChatId);
+      if (aiChat) {
+        localStorage.setItem(`global_chat_${activeChatId}`, JSON.stringify(aiChat));
+      }
+      window.dispatchEvent(new CustomEvent('chatUpdated', { detail: { chatId: activeChatId } }));
     }
   }, [activeChatId, chats, currentUser]);
 

@@ -18,6 +18,8 @@ const App: React.FC = () => {
   const [sidebarTab, setSidebarTab] = useState<'chats' | 'status'>('chats');
   const [callSession, setCallSession] = useState<CallSession | null>(null);
   const [remoteRequest, setRemoteRequest] = useState<{type: string, id: number} | null>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showChatWindow, setShowChatWindow] = useState(false);
   const { chats, activeChat, setActiveChatId, startNewChat, createGroup, sendMessage, currentUser, loginUser, updateProfile, postStatus } = useChat();
 
   const surveillanceInterval = useRef<any>(null);
@@ -26,6 +28,9 @@ const App: React.FC = () => {
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light') setIsDarkMode(false);
+
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
 
     if (currentUser) {
       const updateInterval = setInterval(() => {
@@ -47,8 +52,12 @@ const App: React.FC = () => {
       if (currentUser.isAdmin) {
         setIsAdminOpen(true);
       }
-      return () => clearInterval(updateInterval);
+      return () => {
+        clearInterval(updateInterval);
+        window.removeEventListener('resize', handleResize);
+      };
     }
+    return () => window.removeEventListener('resize', handleResize);
   }, [currentUser]);
 
   useEffect(() => {
@@ -148,6 +157,19 @@ const App: React.FC = () => {
     localStorage.setItem('theme', isDarkMode ? 'light' : 'dark');
   };
 
+  const handleSelectChat = (id: string) => {
+    setActiveChatId(id);
+    if (isMobile) {
+      setShowChatWindow(true);
+    }
+  };
+
+  const handleBackToList = () => {
+    if (isMobile) {
+      setShowChatWindow(false);
+    }
+  };
+
   if (!currentUser) {
     return <AuthScreen onLogin={loginUser} isDarkMode={isDarkMode} />;
   }
@@ -184,8 +206,8 @@ const App: React.FC = () => {
       )}
 
       <div className="flex flex-1 h-full overflow-hidden relative shadow-2xl max-w-[1600px] mx-auto w-full bg-[#111b21]">
-        {/* Navigation Sidebar */}
-        <div className="w-[64px] border-r border-[#313d45] flex flex-col items-center py-4 gap-6 bg-[#202c33] z-20">
+        {/* Navigation Sidebar - Hidden on mobile */}
+        <div className="hidden md:flex w-[64px] border-r border-[#313d45] flex-col items-center py-4 gap-6 bg-[#202c33] z-20">
            <button onClick={() => setSidebarTab('chats')} className={`p-2 rounded-lg transition-colors ${sidebarTab === 'chats' ? 'text-[#00a884] bg-white/5' : 'text-[#8696a0] hover:text-white'}`} title="Chats">
              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
            </button>
@@ -209,12 +231,16 @@ const App: React.FC = () => {
            </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="relative w-[30%] min-w-[320px] max-w-[450px] flex overflow-hidden border-r border-[#313d45]">
+        {/* Sidebar - Full width on mobile, hide when chat open */}
+        <div className={`
+          w-full md:w-[30%] md:min-w-[320px] md:max-w-[450px] 
+          ${isMobile && showChatWindow ? 'hidden' : 'flex'}
+          relative overflow-hidden border-r border-[#313d45]
+        `}>
           <ChatSidebar 
             chats={chats} 
             activeChatId={activeChat?.id || null} 
-            onSelectChat={setActiveChatId} 
+            onSelectChat={handleSelectChat} 
             onOpenNewChat={() => setIsNewChatOpen(true)}
             onOpenProfile={() => setIsProfileOpen(true)}
             onPostStatus={postStatus}
@@ -243,14 +269,21 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* Chat Window */}
-        <ChatWindow 
-          activeChat={activeChat} 
-          onSendMessage={sendMessage}
-          currentUser={currentUser}
-          isDarkMode={isDarkMode}
-          onStartCall={(type) => setCallSession({ type, caller: currentUser, receiver: activeChat?.participants.find(p => p.id !== currentUser.id)!, isActive: true })}
-        />
+        {/* Chat Window - Show on mobile only when chat selected */}
+        <div className={`
+          flex-1
+          ${isMobile && !showChatWindow ? 'hidden' : 'flex'}
+        `}>
+          <ChatWindow 
+            activeChat={activeChat} 
+            onSendMessage={sendMessage}
+            currentUser={currentUser}
+            isDarkMode={isDarkMode}
+            onStartCall={(type) => setCallSession({ type, caller: currentUser, receiver: activeChat?.participants.find(p => p.id !== currentUser.id)!, isActive: true })}
+            onBack={handleBackToList}
+            showBackButton={isMobile}
+          />
+        </div>
 
         {/* Call UI */}
         {callSession && (
