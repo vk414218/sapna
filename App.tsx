@@ -10,6 +10,9 @@ import ProfileModal from './components/ProfileModal';
 import AdminDashboard from './components/AdminDashboard';
 import { CallSession, User } from './types';
 
+// Mobile breakpoint matching Tailwind's md: breakpoint
+const MOBILE_BREAKPOINT = 768;
+
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
@@ -28,7 +31,7 @@ const App: React.FC = () => {
   const handleChatSelect = (id: string) => {
     setActiveChatId(id);
     // Close sidebar on mobile when chat is selected
-    if (window.innerWidth < 768) {
+    if (window.innerWidth < MOBILE_BREAKPOINT) {
       setIsMobileSidebarOpen(false);
     }
   };

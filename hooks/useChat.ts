@@ -64,11 +64,11 @@ export const useChat = () => {
     const globalUsersRaw = localStorage.getItem('global_registered_users');
     let globalUsers: User[] = globalUsersRaw ? JSON.parse(globalUsersRaw) : [];
     
-    // Check if user exists by phone or id
-    const existingUserIndex = globalUsers.findIndex(u => u.phone === user.phone || u.id === user.id);
+    // Check if user exists by id (unique identifier)
+    const existingUserIndex = globalUsers.findIndex(u => u.id === user.id);
     if (existingUserIndex >= 0) {
       // Update existing user with online status
-      globalUsers[existingUserIndex] = { ...globalUsers[existingUserIndex], ...userWithOnlineStatus, status: 'online' };
+      globalUsers[existingUserIndex] = { ...globalUsers[existingUserIndex], ...userWithOnlineStatus };
     } else {
       // Add new user with online status
       globalUsers.push(userWithOnlineStatus);
