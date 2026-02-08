@@ -10,10 +10,13 @@ export class GeminiService {
     this.apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
     
     if (!this.apiKey) {
-      console.error("Warning: No API key found. Set GEMINI_API_KEY or API_KEY environment variable.");
+      console.warn("Warning: No API key found. Set GEMINI_API_KEY or API_KEY environment variable.");
+      // Initialize with empty key to avoid initialization errors
+      // Methods will check for API key before making requests
+      this.ai = new GoogleGenerativeAI('');
+    } else {
+      this.ai = new GoogleGenerativeAI(this.apiKey);
     }
-    
-    this.ai = new GoogleGenerativeAI(this.apiKey);
   }
 
   async getResponse(prompt: string) {
