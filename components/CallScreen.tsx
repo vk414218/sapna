@@ -17,11 +17,15 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     initializeCall();
     
     return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
       webrtcService.endCall();
     };
   }, []);
@@ -66,11 +70,12 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
   };
 
   const startTimer = () => {
-    const interval = setInterval(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    timerRef.current = setInterval(() => {
       setCallDuration(d => d + 1);
     }, 1000);
-
-    return () => clearInterval(interval);
   };
 
   const formatDuration = (seconds: number): string => {
@@ -141,7 +146,7 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover transform scale-x-[-1]"
+              className="w-full h-full object-cover mirror"
             />
           </div>
         )}
@@ -276,6 +281,11 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
           )}
         </div>
       </div>
+      <style>{`
+        .mirror {
+          transform: scaleX(-1);
+        }
+      `}</style>
     </div>
   );
 };

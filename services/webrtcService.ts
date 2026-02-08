@@ -1,13 +1,25 @@
-import Peer from 'peerjs';
+import Peer, { MediaConnection } from 'peerjs';
 
 export interface CallOptions {
   video: boolean;
   audio: boolean;
 }
 
+export interface CallerInfo {
+  from: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
+  to: string;
+  type: 'video' | 'audio';
+  peerId: string;
+  timestamp: number;
+}
+
 export class WebRTCService {
   private peer: Peer | null = null;
-  private currentCall: any = null;
+  private currentCall: MediaConnection | null = null;
   private localStream: MediaStream | null = null;
   private remoteStream: MediaStream | null = null;
 
@@ -114,7 +126,7 @@ export class WebRTCService {
 
   // Answer incoming call
   async answerCall(
-    incomingCall: any,
+    incomingCall: MediaConnection,
     options: CallOptions,
     onRemoteStream: (stream: MediaStream) => void
   ): Promise<void> {
@@ -138,13 +150,13 @@ export class WebRTCService {
   }
 
   // Listen for incoming calls
-  onIncomingCall(callback: (call: any, callerInfo: any) => void) {
+  onIncomingCall(callback: (call: MediaConnection, callerInfo: CallerInfo | null) => void) {
     if (!this.peer) return;
 
     this.peer.on('call', (call) => {
       // Get caller info from localStorage signal
       const signal = localStorage.getItem('incoming_call_signal');
-      const callerInfo = signal ? JSON.parse(signal) : null;
+      const callerInfo: CallerInfo | null = signal ? JSON.parse(signal) : null;
       callback(call, callerInfo);
     });
   }
