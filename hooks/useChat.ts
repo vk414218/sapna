@@ -79,8 +79,8 @@ export const useChat = () => {
       setChats(updatedChats);
     };
 
-    // Poll for updates every 2 seconds
-    const pollInterval = setInterval(handleChatUpdate, 2000);
+    // Poll for updates every 5 seconds (reduced from 2s for better performance)
+    const pollInterval = setInterval(handleChatUpdate, 5000);
 
     // Listen for storage events from other tabs
     const handleStorageEvent = (e: StorageEvent) => {
@@ -200,7 +200,7 @@ export const useChat = () => {
     if (!activeChatId || !currentUser) return;
 
     const newMessage: Message = {
-      id: `msg-${Date.now()}_${Math.random()}`,
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       senderId: currentUser.id,
       receiverId: activeChatId,
       content,

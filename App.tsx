@@ -57,6 +57,7 @@ const App: React.FC = () => {
         window.removeEventListener('resize', handleResize);
       };
     }
+    
     return () => window.removeEventListener('resize', handleResize);
   }, [currentUser]);
 
