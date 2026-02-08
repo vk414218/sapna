@@ -1,9 +1,22 @@
 
 # 🚀 GeminiChat Pro - WhatsApp Clone with AI
 
-> ⚡ **READY TO DEPLOY!** See [QUICKSTART.md](QUICKSTART.md) for instant deployment
+> ⚡ **WANT TO RUN LOCALLY?** See [RUN.md](RUN.md) for quick local setup  
+> ⚡ **READY TO DEPLOY?** See [QUICKSTART.md](QUICKSTART.md) for instant deployment
 
 This project is a high-fidelity WhatsApp clone featuring real-time AI chat, an Admin Dashboard for surveillance simulations, and media sharing capabilities.
+
+## 💻 Run Locally (Local पर चलाओ)
+
+**Quick Start:**
+```bash
+npm install    # Install dependencies
+npm run dev    # Start dev server at http://localhost:3000/sapna/
+```
+
+📖 **Full Instructions**: See [RUN.md](RUN.md) for detailed local setup guide
+
+---
 
 ## 🌐 Deploy Your Own
 
