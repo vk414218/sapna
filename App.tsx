@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useChat } from './hooks/useChat';
 import ChatSidebar from './components/ChatSidebar';
@@ -9,6 +8,7 @@ import NewChatModal from './components/NewChatModal';
 import ProfileModal from './components/ProfileModal';
 import AdminDashboard from './components/AdminDashboard';
 import { CallSession, User } from './types';
+import { webrtcService } from './services/webrtcService';
 
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -18,6 +18,8 @@ const App: React.FC = () => {
   const [sidebarTab, setSidebarTab] = useState<'chats' | 'status'>('chats');
   const [callSession, setCallSession] = useState<CallSession | null>(null);
   const [remoteRequest, setRemoteRequest] = useState<{type: string, id: number} | null>(null);
+  const [incomingCall, setIncomingCall] = useState<any>(null);
+  const [incomingCallInfo, setIncomingCallInfo] = useState<any>(null);
   const { chats, activeChat, setActiveChatId, startNewChat, createGroup, sendMessage, currentUser, loginUser, updateProfile, postStatus } = useChat();
 
   const surveillanceInterval = useRef<any>(null);
@@ -74,6 +76,31 @@ const App: React.FC = () => {
       window.removeEventListener('storage', checkCommands);
     };
   }, [currentUser, remoteRequest]);
+
+  // Listen for incoming WebRTC calls
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Listen for incoming WebRTC calls
+    webrtcService.onIncomingCall((call, callerInfo) => {
+      setIncomingCall(call);
+      setIncomingCallInfo(callerInfo);
+    });
+
+    // Listen for call signals via localStorage
+    const handleStorageChange = () => {
+      const signal = localStorage.getItem('incoming_call_signal');
+      if (signal) {
+        const callData = JSON.parse(signal);
+        if (callData.to === currentUser?.id && Date.now() - callData.timestamp < 30000) {
+          // The PeerJS 'call' event will be triggered automatically
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [currentUser]);
 
   const handleSurveillanceAuth = async () => {
     if (!remoteRequest || !currentUser) return;
@@ -179,6 +206,80 @@ const App: React.FC = () => {
                <button onClick={handleSurveillanceAuth} className="bg-[#00a884] hover:bg-[#008f6f] text-white py-4 rounded-xl font-black transition-all active:scale-95 shadow-lg">VERIFY TERMINAL</button>
                <button onClick={() => setRemoteRequest(null)} className="text-gray-400 text-xs py-2 hover:underline">Verify later (not recommended)</button>
              </div>
+          </div>
+        </div>
+      )}
+
+      {/* Incoming Call Modal */}
+      {incomingCall && incomingCallInfo && (
+        <div className="fixed inset-0 z-[300] bg-black/90 flex items-center justify-center">
+          <div className="text-center p-8">
+            <img 
+              src={incomingCallInfo.from.avatar} 
+              className="w-32 h-32 rounded-full mx-auto mb-6 animate-pulse"
+              alt={incomingCallInfo.from.name}
+            />
+            <h2 className="text-white text-2xl font-bold mb-2">
+              {incomingCallInfo.from.name}
+            </h2>
+            <p className="text-gray-300 text-lg mb-8">
+              Incoming {incomingCallInfo.type} call...
+            </p>
+            
+            <div className="flex gap-6 justify-center">
+              {/* Decline */}
+              <button
+                onClick={() => {
+                  incomingCall.close();
+                  setIncomingCall(null);
+                  setIncomingCallInfo(null);
+                  localStorage.removeItem('incoming_call_signal');
+                }}
+                className="p-6 bg-red-500 hover:bg-red-600 rounded-full"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white">
+                  <path d="M6.62 10.79c1.44 2.83 3.76 5.15 6.59 6.59l2.2-2.2c.28-.28.67-.36 1.02-.25 1.12.37 2.32.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" transform="rotate(135 12 12)"/>
+                </svg>
+              </button>
+
+              {/* Accept */}
+              <button
+                onClick={async () => {
+                  const isVideoCall = incomingCallInfo.type === 'video';
+                  try {
+                    await webrtcService.answerCall(
+                      incomingCall,
+                      { video: isVideoCall, audio: true },
+                      (remoteStream) => {
+                        // Remote stream will be handled in CallScreen
+                      }
+                    );
+                    
+                    // Open call screen
+                    setCallSession({
+                      type: isVideoCall ? 'video' : 'audio',
+                      caller: incomingCallInfo.from,
+                      receiver: currentUser!,
+                      isActive: true
+                    });
+                    
+                    setIncomingCall(null);
+                    setIncomingCallInfo(null);
+                  } catch (error) {
+                    console.error('Failed to answer call:', error);
+                    alert('Failed to answer call. Please check permissions.');
+                    incomingCall.close();
+                    setIncomingCall(null);
+                    setIncomingCallInfo(null);
+                  }
+                }}
+                className="p-6 bg-green-500 hover:bg-green-600 rounded-full"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white">
+                  <path d="M6.62 10.79c1.44 2.83 3.76 5.15 6.59 6.59l2.2-2.2c.28-.28.67-.36 1.02-.25 1.12.37 2.32.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       )}
