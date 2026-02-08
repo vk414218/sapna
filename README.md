@@ -1,7 +1,22 @@
 
-# 🚀 GeminiChat Pro Deployment Guide
+# 🚀 GeminiChat Pro - WhatsApp Clone with AI
+
+> ⚡ **READY TO DEPLOY!** See [QUICKSTART.md](QUICKSTART.md) for instant deployment
 
 This project is a high-fidelity WhatsApp clone featuring real-time AI chat, an Admin Dashboard for surveillance simulations, and media sharing capabilities.
+
+## 🌐 Deploy Your Own
+
+**Live Demo**: `https://vk414218.github.io/sapna/` (after deployment)
+
+### Quick Deploy Options:
+1. **GitHub Pages** - Free hosting (See [QUICKSTART.md](QUICKSTART.md))
+2. **Vercel** - Instant deployment (2 minutes)
+3. **Netlify** - Drag and drop
+
+📖 **Full Guide**: See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions
+
+---
 
 ## 🛠 Features
 - **WhatsApp Web UI**: Pixel-perfect dark/light mode.
