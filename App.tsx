@@ -212,46 +212,59 @@ const App: React.FC = () => {
 
       {/* Incoming Call Modal */}
       {incomingCall && incomingCallInfo && (
-        <div className="fixed inset-0 z-[300] bg-black/90 flex items-center justify-center">
-          <div className="text-center p-8">
-            <img 
-              src={incomingCallInfo.from.avatar} 
-              className="w-32 h-32 rounded-full mx-auto mb-6 animate-pulse"
-              alt={incomingCallInfo.from.name}
-            />
-            <h2 className="text-white text-2xl font-bold mb-2">
-              {incomingCallInfo.from.name}
-            </h2>
-            <p className="text-gray-300 text-lg mb-8">
-              Incoming {incomingCallInfo.type} call...
-            </p>
+        <div className="fixed inset-0 z-[300] bg-black/90 flex items-center justify-center p-4">
+          <div className="text-center max-w-sm w-full">
+            <div className="mb-8">
+              <img 
+                src={incomingCallInfo.from.avatar} 
+                className="w-32 h-32 rounded-full mx-auto mb-6 border-4 border-[#00a884] animate-pulse"
+                alt={incomingCallInfo.from.name}
+              />
+              <h2 className="text-white text-2xl font-bold mb-2">
+                {incomingCallInfo.from.name}
+              </h2>
+              <p className="text-gray-300 text-lg mb-1">
+                Incoming {incomingCallInfo.type} call...
+              </p>
+              <div className="flex items-center justify-center gap-2 text-[#00a884] text-sm">
+                <div className="w-2 h-2 bg-[#00a884] rounded-full animate-ping"></div>
+                <span>Ringing...</span>
+              </div>
+            </div>
             
             <div className="flex gap-6 justify-center">
               {/* Decline */}
               <button
                 onClick={() => {
-                  incomingCall.close();
+                  if (incomingCall) {
+                    incomingCall.close();
+                  }
                   setIncomingCall(null);
                   setIncomingCallInfo(null);
                   localStorage.removeItem('incoming_call_signal');
                 }}
-                className="p-6 bg-red-500 hover:bg-red-600 rounded-full"
+                className="flex flex-col items-center gap-2"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white">
-                  <path d="M6.62 10.79c1.44 2.83 3.76 5.15 6.59 6.59l2.2-2.2c.28-.28.67-.36 1.02-.25 1.12.37 2.32.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" transform="rotate(135 12 12)"/>
-                </svg>
+                <div className="p-6 bg-red-500 hover:bg-red-600 rounded-full transition-all shadow-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white">
+                    <path d="M23 15.5C23 16.3 22.3 17 21.5 17C20.7 17 20 16.3 20 15.5C20 14.7 20.7 14 21.5 14C22.3 14 23 14.7 23 15.5M2.5 17C1.7 17 1 16.3 1 15.5C1 14.7 1.7 14 2.5 14C3.3 14 4 14.7 4 15.5C4 16.3 3.3 17 2.5 17M12 9L8 12H12V16L16 13H12V9Z"/>
+                  </svg>
+                </div>
+                <span className="text-white text-sm">Decline</span>
               </button>
 
               {/* Accept */}
               <button
                 onClick={async () => {
-                  const isVideoCall = incomingCallInfo.type === 'video';
                   try {
+                    const isVideoCall = incomingCallInfo.type === 'video';
+                    
+                    // Answer the call
                     await webrtcService.answerCall(
                       incomingCall,
                       { video: isVideoCall, audio: true },
                       (remoteStream) => {
-                        // Remote stream will be handled in CallScreen
+                        console.log('Remote stream received in answer');
                       }
                     );
                     
@@ -265,19 +278,21 @@ const App: React.FC = () => {
                     
                     setIncomingCall(null);
                     setIncomingCallInfo(null);
-                  } catch (error) {
+                  } catch (error: any) {
                     console.error('Failed to answer call:', error);
-                    alert('Failed to answer call. Please check permissions.');
-                    incomingCall.close();
+                    alert(error.message || 'Failed to answer call');
                     setIncomingCall(null);
                     setIncomingCallInfo(null);
                   }
                 }}
-                className="p-6 bg-green-500 hover:bg-green-600 rounded-full"
+                className="flex flex-col items-center gap-2"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white">
-                  <path d="M6.62 10.79c1.44 2.83 3.76 5.15 6.59 6.59l2.2-2.2c.28-.28.67-.36 1.02-.25 1.12.37 2.32.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
-                </svg>
+                <div className="p-6 bg-green-500 hover:bg-green-600 rounded-full transition-all shadow-lg animate-pulse">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white">
+                    <path d="M6.62 10.79c1.44 2.83 3.76 5.15 6.59 6.59l2.2-2.2c.28-.28.67-.36 1.02-.25 1.12.37 2.32.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                  </svg>
+                </div>
+                <span className="text-white text-sm">Accept</span>
               </button>
             </div>
           </div>

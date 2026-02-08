@@ -13,7 +13,6 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
-  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -33,9 +32,12 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
   const initializeCall = async () => {
     try {
       const isVideoCall = session.type === 'video';
+      const currentUser = JSON.parse(localStorage.getItem('gemini_current_profile') || '{}');
+      const isCaller = session.caller.id === currentUser.id;
       
-      // Handle remote stream
+      // Handle remote stream callback
       const handleRemoteStream = (stream: MediaStream) => {
+        console.log('Displaying remote stream');
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = stream;
         }
@@ -43,28 +45,62 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
         startTimer();
       };
 
-      // Get local stream and display it
-      const localStream = await webrtcService.getLocalStream({
-        video: isVideoCall,
-        audio: true
-      });
-
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = localStream;
-      }
-
-      // If we're the caller, make the call
-      const currentUser = JSON.parse(localStorage.getItem('gemini_current_profile') || '{}');
-      if (session.caller.id === currentUser.id) {
+      if (isCaller) {
+        // We're the caller - need to get media and make the call
+        console.log('Initiating call as caller');
+        
+        // Get and display local stream
+        const localStream = await webrtcService.getLocalStream({
+          video: isVideoCall,
+          audio: true
+        });
+        
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = localStream;
+        }
+        
+        // Make the call
         await webrtcService.makeCall(
           session.receiver.id,
           { video: isVideoCall, audio: true },
           handleRemoteStream
         );
+      } else {
+        // We're the receiver - call was already answered, just display streams
+        console.log('Displaying streams as receiver');
+        
+        // Get local stream from service (already obtained during answerCall)
+        const localStream = webrtcService.getCurrentLocalStream();
+        if (localStream && localVideoRef.current) {
+          localVideoRef.current.srcObject = localStream;
+        }
+        
+        // Get remote stream from service (will be set via callback from answerCall)
+        const remoteStream = webrtcService.getRemoteStream();
+        if (remoteStream && remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+          setIsConnecting(false);
+          startTimer();
+        } else {
+          // Wait for remote stream to arrive
+          const checkInterval = setInterval(() => {
+            const rs = webrtcService.getRemoteStream();
+            if (rs && remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = rs;
+              setIsConnecting(false);
+              startTimer();
+              clearInterval(checkInterval);
+            }
+          }, 100);
+          
+          // Clear interval after 10 seconds
+          setTimeout(() => clearInterval(checkInterval), 10000);
+        }
       }
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Failed to initialize call:', error);
-      alert('Failed to access camera/microphone. Please check permissions.');
+      alert(error.message || 'Failed to start call. Please check camera/microphone permissions.');
       onEnd();
     }
   };
@@ -114,19 +150,21 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
       {/* Video containers */}
       <div className="flex-1 relative">
         {/* Remote video (full screen) */}
-        <video
-          ref={remoteVideoRef}
-          autoPlay
-          playsInline
-          className={`w-full h-full object-cover ${!isVideoCall && 'hidden'}`}
-        />
+        {isVideoCall && (
+          <video
+            ref={remoteVideoRef}
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover"
+          />
+        )}
         
-        {/* Remote audio indicator (for audio calls) */}
+        {/* Audio call UI */}
         {!isVideoCall && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
             <img 
               src={session.receiver.avatar} 
-              className="w-32 h-32 rounded-full mb-6 border-4 border-white/20"
+              className="w-32 h-32 rounded-full mb-6 border-4 border-white/20 animate-pulse"
               alt={session.receiver.name}
             />
             <h2 className="text-white text-2xl font-bold mb-2">
@@ -140,20 +178,20 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
 
         {/* Local video (picture-in-picture) */}
         {isVideoCall && (
-          <div className="absolute top-4 right-4 w-32 h-48 rounded-lg overflow-hidden border-2 border-white/30 shadow-2xl">
+          <div className="absolute top-4 right-4 w-32 h-48 md:w-40 md:h-60 rounded-lg overflow-hidden border-2 border-white/30 shadow-2xl bg-black">
             <video
               ref={localVideoRef}
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover mirror"
+              className="w-full h-full object-cover transform scale-x-[-1]"
             />
           </div>
         )}
 
         {/* Call info overlay (for video calls) */}
         {isVideoCall && (
-          <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full">
+          <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full">
             <p className="text-white text-sm font-medium">
               {isConnecting ? 'Connecting...' : formatDuration(callDuration)}
             </p>
@@ -172,12 +210,12 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
       </div>
 
       {/* Controls */}
-      <div className="p-6 bg-gradient-to-t from-black/80 to-transparent">
-        <div className="flex items-center justify-center gap-4 max-w-md mx-auto">
+      <div className="p-6 md:p-8 bg-gradient-to-t from-black/90 to-transparent">
+        <div className="flex items-center justify-center gap-4 md:gap-6 max-w-md mx-auto">
           {/* Toggle Audio */}
           <button
             onClick={handleToggleAudio}
-            className={`p-4 rounded-full transition-all ${
+            className={`p-4 md:p-5 rounded-full transition-all shadow-lg ${
               isAudioMuted 
                 ? 'bg-red-500 hover:bg-red-600' 
                 : 'bg-gray-700/80 hover:bg-gray-600'
@@ -208,7 +246,7 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
           {isVideoCall && (
             <button
               onClick={handleToggleVideo}
-              className={`p-4 rounded-full transition-all ${
+              className={`p-4 md:p-5 rounded-full transition-all shadow-lg ${
                 isVideoOff 
                   ? 'bg-red-500 hover:bg-red-600' 
                   : 'bg-gray-700/80 hover:bg-gray-600'
@@ -235,11 +273,11 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
           {/* End Call */}
           <button
             onClick={handleEndCall}
-            className="p-6 bg-red-500 hover:bg-red-600 rounded-full transition-all shadow-lg"
+            className="p-5 md:p-6 bg-red-500 hover:bg-red-600 rounded-full transition-all shadow-lg transform hover:scale-105"
             title="End call"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="white">
-              <path d="M23 15.5C23 16.3 22.3 17 21.5 17C20.7 17 20 16.3 20 15.5C20 14.7 20.7 14 21.5 14C22.3 14 23 14.7 23 15.5M2.5 17C1.7 17 1 16.3 1 15.5C1 14.7 1.7 14 2.5 14C3.3 14 4 14.7 4 15.5C4 16.3 3.3 17 2.5 17M21.5 10H21.3C21.1 9.4 20.8 8.8 20.5 8.3L20.6 8.2C21 7.8 21 7.2 20.6 6.8L19.2 5.4C18.8 5 18.2 5 17.8 5.4L17.7 5.5C17.2 5.2 16.6 4.9 16 4.7V4.5C16 3.7 15.3 3 14.5 3H12.5C11.7 3 11 3.7 11 4.5V4.7C10.4 4.9 9.8 5.2 9.3 5.5L9.2 5.4C8.8 5 8.2 5 7.8 5.4L6.4 6.8C6 7.2 6 7.8 6.4 8.2L6.5 8.3C6.2 8.8 5.9 9.4 5.7 10H5.5C4.7 10 4 10.7 4 11.5V13.5C4 14.3 4.7 15 5.5 15H5.7C5.9 15.6 6.2 16.2 6.5 16.7L6.4 16.8C6 17.2 6 17.8 6.4 18.2L7.8 19.6C8.2 20 8.8 20 9.2 19.6L9.3 19.5C9.8 19.8 10.4 20.1 11 20.3V20.5C11 21.3 11.7 22 12.5 22H14.5C15.3 22 16 21.3 16 20.5V20.3C16.6 20.1 17.2 19.8 17.7 19.5L17.8 19.6C18.2 20 18.8 20 19.2 19.6L20.6 18.2C21 17.8 21 17.2 20.6 16.8L20.5 16.7C20.8 16.2 21.1 15.6 21.3 15H21.5C22.3 15 23 14.3 23 13.5V11.5C23 10.7 22.3 10 21.5 10M13.5 18C10.5 18 8 15.5 8 12.5C8 9.5 10.5 7 13.5 7C16.5 7 19 9.5 19 12.5C19 15.5 16.5 18 13.5 18Z"/>
+              <path d="M23 15.5C23 16.3 22.3 17 21.5 17C20.7 17 20 16.3 20 15.5C20 14.7 20.7 14 21.5 14C22.3 14 23 14.7 23 15.5M2.5 17C1.7 17 1 16.3 1 15.5C1 14.7 1.7 14 2.5 14C3.3 14 4 14.7 4 15.5C4 16.3 3.3 17 2.5 17M12 2C6.5 2 2 6.5 2 12C2 13.8 2.5 15.5 3.4 16.9L2.3 21.7L7.1 20.6C8.5 21.5 10.2 22 12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2M16.6 14.6C16.3 14.8 16 15 15.6 15C15 15 14.4 14.8 13.9 14.5C12.7 13.9 11.3 12.9 10.1 11.7C8.9 10.5 7.9 9.1 7.3 7.9C7 7.4 6.8 6.8 6.8 6.2C6.8 5.8 6.9 5.5 7.2 5.2C7.4 5 7.7 4.8 8 4.8C8.1 4.8 8.3 4.8 8.4 4.8C8.6 4.8 8.8 4.9 8.9 5.3C9.1 5.7 9.6 6.9 9.6 7C9.7 7.1 9.7 7.2 9.6 7.4C9.6 7.5 9.5 7.6 9.4 7.8C9.3 7.9 9.2 8 9.1 8.2C9 8.3 8.9 8.4 9 8.6C9.4 9.2 9.9 9.8 10.5 10.4C11.1 11 11.7 11.5 12.3 11.9C12.5 12 12.6 12 12.8 11.9C12.9 11.8 13.5 11.2 13.7 11C13.8 10.8 14 10.8 14.2 10.9C14.4 11 15.6 11.5 15.8 11.6C16 11.7 16.1 11.7 16.2 11.8C16.2 12 16.2 12.6 16 13.1C15.9 13.6 15.8 14.1 16.6 14.6Z"/>
             </svg>
           </button>
 
@@ -247,45 +285,19 @@ const CallScreen: React.FC<CallScreenProps> = ({ session, onEnd }) => {
           {isVideoCall && (
             <button
               onClick={handleSwitchCamera}
-              className="p-4 bg-gray-700/80 hover:bg-gray-600 rounded-full transition-all md:hidden"
+              className="p-4 md:p-5 bg-gray-700/80 hover:bg-gray-600 rounded-full transition-all shadow-lg md:hidden"
               title="Switch camera"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <path d="M17 8l4-4m0 0l-4-4m4 4H3"/>
-                <path d="M7 16l-4 4m0 0l4 4m-4-4h18"/>
-              </svg>
-            </button>
-          )}
-
-          {/* Speaker toggle (only for audio calls) */}
-          {!isVideoCall && (
-            <button
-              onClick={() => setIsSpeakerOn(!isSpeakerOn)}
-              className={`p-4 rounded-full transition-all ${
-                isSpeakerOn 
-                  ? 'bg-green-500 hover:bg-green-600' 
-                  : 'bg-gray-700/80 hover:bg-gray-600'
-              }`}
-              title={isSpeakerOn ? 'Speaker on' : 'Speaker off'}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                {isSpeakerOn && (
-                  <>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                  </>
-                )}
+                <polyline points="17 1 21 5 17 9"/>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                <polyline points="7 23 3 19 7 15"/>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
               </svg>
             </button>
           )}
         </div>
       </div>
-      <style>{`
-        .mirror {
-          transform: scaleX(-1);
-        }
-      `}</style>
     </div>
   );
 };

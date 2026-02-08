@@ -55,6 +55,16 @@ export class WebRTCService {
 
   // Get user media (camera/microphone)
   async getLocalStream(options: CallOptions): Promise<MediaStream> {
+    // Reuse existing stream if it matches the requirements
+    if (this.localStream) {
+      const hasVideo = this.localStream.getVideoTracks().length > 0;
+      const hasAudio = this.localStream.getAudioTracks().length > 0;
+      
+      if ((options.video === hasVideo || !options.video) && hasAudio) {
+        return this.localStream;
+      }
+    }
+
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({
         video: options.video ? {
@@ -240,6 +250,21 @@ export class WebRTCService {
         }
       }
     }
+  }
+
+  // Get current local stream (synchronous)
+  getCurrentLocalStream(): MediaStream | null {
+    return this.localStream;
+  }
+
+  // Get remote stream for display
+  getRemoteStream(): MediaStream | null {
+    return this.remoteStream;
+  }
+
+  // Check if peer is initialized
+  isInitialized(): boolean {
+    return this.peer !== null && this.peer.id !== undefined;
   }
 
   // Get connection stats
