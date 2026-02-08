@@ -59,8 +59,16 @@ npm run dev
 
 ### If port is already in use:
 ```bash
-# Kill process on port 3000
+# Linux/Mac: Kill process on port 3000
 kill $(lsof -t -i:3000)
+
+# Windows: Kill process on port 3000
+# First find the PID: netstat -ano | findstr :3000
+# Then kill it: taskkill /PID <PID> /F
+
+# Or use cross-platform tool (install first: npm install -g kill-port)
+npx kill-port 3000
+
 npm run dev
 ```
 
@@ -68,8 +76,12 @@ npm run dev
 
 ## Admin Login Credentials (Admin Login के लिए)
 
+> ⚠️ **Note:** These are demo credentials for local testing only. This is a simulation/demo app.
+
 - **Phone:** `admin` या `9999999999`
 - **Password:** None needed
+
+For production deployments, implement proper authentication and user management.
 
 ---
 
