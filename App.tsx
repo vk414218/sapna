@@ -212,46 +212,59 @@ const App: React.FC = () => {
 
       {/* Incoming Call Modal */}
       {incomingCall && incomingCallInfo && (
-        <div className="fixed inset-0 z-[300] bg-black/90 flex items-center justify-center">
-          <div className="text-center p-8">
-            <img 
-              src={incomingCallInfo.from.avatar} 
-              className="w-32 h-32 rounded-full mx-auto mb-6 animate-pulse"
-              alt={incomingCallInfo.from.name}
-            />
-            <h2 className="text-white text-2xl font-bold mb-2">
-              {incomingCallInfo.from.name}
-            </h2>
-            <p className="text-gray-300 text-lg mb-8">
-              Incoming {incomingCallInfo.type} call...
-            </p>
+        <div className="fixed inset-0 z-[300] bg-black/90 flex items-center justify-center p-4">
+          <div className="text-center max-w-sm w-full">
+            <div className="mb-8">
+              <img 
+                src={incomingCallInfo.from.avatar} 
+                className="w-32 h-32 rounded-full mx-auto mb-6 border-4 border-[#00a884] animate-pulse"
+                alt={incomingCallInfo.from.name}
+              />
+              <h2 className="text-white text-2xl font-bold mb-2">
+                {incomingCallInfo.from.name}
+              </h2>
+              <p className="text-gray-300 text-lg mb-1">
+                Incoming {incomingCallInfo.type} call...
+              </p>
+              <div className="flex items-center justify-center gap-2 text-[#00a884] text-sm">
+                <div className="w-2 h-2 bg-[#00a884] rounded-full animate-ping"></div>
+                <span>Ringing...</span>
+              </div>
+            </div>
             
             <div className="flex gap-6 justify-center">
               {/* Decline */}
               <button
                 onClick={() => {
-                  incomingCall.close();
+                  if (incomingCall) {
+                    incomingCall.close();
+                  }
                   setIncomingCall(null);
                   setIncomingCallInfo(null);
                   localStorage.removeItem('incoming_call_signal');
                 }}
-                className="p-6 bg-red-500 hover:bg-red-600 rounded-full"
+                className="flex flex-col items-center gap-2"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white">
-                  <path d="M6.62 10.79c1.44 2.83 3.76 5.15 6.59 6.59l2.2-2.2c.28-.28.67-.36 1.02-.25 1.12.37 2.32.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" transform="rotate(135 12 12)"/>
-                </svg>
+                <div className="p-6 bg-red-500 hover:bg-red-600 rounded-full transition-all shadow-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.68-1.36-2.66-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+                  </svg>
+                </div>
+                <span className="text-white text-sm">Decline</span>
               </button>
 
               {/* Accept */}
               <button
                 onClick={async () => {
-                  const isVideoCall = incomingCallInfo.type === 'video';
                   try {
+                    const isVideoCall = incomingCallInfo.type === 'video';
+                    
+                    // Answer the call
                     await webrtcService.answerCall(
                       incomingCall,
                       { video: isVideoCall, audio: true },
                       (remoteStream) => {
-                        // Remote stream will be handled in CallScreen
+                        console.log('Remote stream received in answer');
                       }
                     );
                     
@@ -265,19 +278,21 @@ const App: React.FC = () => {
                     
                     setIncomingCall(null);
                     setIncomingCallInfo(null);
-                  } catch (error) {
+                  } catch (error: any) {
                     console.error('Failed to answer call:', error);
-                    alert('Failed to answer call. Please check permissions.');
-                    incomingCall.close();
+                    alert(error.message || 'Failed to answer call');
                     setIncomingCall(null);
                     setIncomingCallInfo(null);
                   }
                 }}
-                className="p-6 bg-green-500 hover:bg-green-600 rounded-full"
+                className="flex flex-col items-center gap-2"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white">
-                  <path d="M6.62 10.79c1.44 2.83 3.76 5.15 6.59 6.59l2.2-2.2c.28-.28.67-.36 1.02-.25 1.12.37 2.32.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
-                </svg>
+                <div className="p-6 bg-green-500 hover:bg-green-600 rounded-full transition-all shadow-lg animate-pulse">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="white">
+                    <path d="M6.62 10.79c1.44 2.83 3.76 5.15 6.59 6.59l2.2-2.2c.28-.28.67-.36 1.02-.25 1.12.37 2.32.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                  </svg>
+                </div>
+                <span className="text-white text-sm">Accept</span>
               </button>
             </div>
           </div>
