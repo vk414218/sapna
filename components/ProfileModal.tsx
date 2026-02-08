@@ -32,18 +32,18 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onUpdate, onClose, is
 
   return (
     <div className="absolute inset-0 z-[60] flex flex-col animate-in slide-in-from-left duration-300" style={{ backgroundColor: colors.bg }}>
-      <div className="h-[108px] flex flex-col justify-end p-5 pb-4" style={{ backgroundColor: isDarkMode ? '#202c33' : '#008069' }}>
-        <div className="flex items-center gap-6 text-white mb-2">
+      <div className="h-[90px] md:h-[108px] flex flex-col justify-end p-4 md:p-5 pb-3 md:pb-4" style={{ backgroundColor: isDarkMode ? '#202c33' : '#008069' }}>
+        <div className="flex items-center gap-4 md:gap-6 text-white mb-2">
           <button onClick={onClose} className="hover:opacity-80">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           </button>
-          <h2 className="text-lg font-medium">Profile</h2>
+          <h2 className="text-base md:text-lg font-medium">Profile</h2>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8 flex flex-col items-center">
-        <div className="relative group mb-8">
-          <img src={avatar} className="w-48 h-48 rounded-full object-cover border-4 border-white/10 shadow-xl" alt="Avatar" />
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center">
+        <div className="relative group mb-6 md:mb-8">
+          <img src={avatar} className="w-32 h-32 md:w-48 md:h-48 rounded-full object-cover border-4 border-white/10 shadow-xl" alt="Avatar" />
           <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
             <svg className="text-white w-10 h-10" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />

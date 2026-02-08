@@ -109,25 +109,25 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       )}
 
       {/* Header */}
-      <div className="p-3 flex justify-between items-center" style={{ backgroundColor: colors.panel }}>
+      <div className="p-2 md:p-3 flex justify-between items-center" style={{ backgroundColor: colors.panel }}>
         <img 
           src={currentUser.avatar} 
           alt="Profile" 
-          className="w-10 h-10 rounded-full cursor-pointer object-cover border border-white/10" 
+          className="w-9 h-9 md:w-10 md:h-10 rounded-full cursor-pointer object-cover border border-white/10" 
           onClick={onOpenProfile}
         />
-        <div className="flex gap-4 items-center">
-          <button onClick={() => setTab('status')} className={`transition hover:bg-white/5 p-2 rounded-full ${activeTab === 'status' ? 'text-[#00a884]' : 'text-[#8696a0]'}`}>
-             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/><path d="M12 22a10 10 0 0 1-10-10"/></svg>
+        <div className="flex gap-2 md:gap-4 items-center">
+          <button onClick={() => setTab('status')} className={`transition hover:bg-white/5 p-1.5 md:p-2 rounded-full ${activeTab === 'status' ? 'text-[#00a884]' : 'text-[#8696a0]'}`}>
+             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/><path d="M12 22a10 10 0 0 1-10-10"/></svg>
           </button>
-          <button onClick={() => setTab('chats')} className={`transition hover:bg-white/5 p-2 rounded-full ${activeTab === 'chats' ? 'text-[#00a884]' : 'text-[#8696a0]'}`}>
-             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <button onClick={() => setTab('chats')} className={`transition hover:bg-white/5 p-1.5 md:p-2 rounded-full ${activeTab === 'chats' ? 'text-[#00a884]' : 'text-[#8696a0]'}`}>
+             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           </button>
-          <button onClick={onOpenNewChat} className="text-[#8696a0] hover:bg-white/5 p-2 rounded-full hover:text-[#00a884] transition">
-             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <button onClick={onOpenNewChat} className="text-[#8696a0] hover:bg-white/5 p-1.5 md:p-2 rounded-full hover:text-[#00a884] transition">
+             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
           <div className="relative" ref={menuRef}>
-            <button onClick={() => setIsSidebarMenuOpen(!isSidebarMenuOpen)} className="text-[#8696a0] hover:bg-white/5 p-2 rounded-full hover:text-[#00a884]">
+            <button onClick={() => setIsSidebarMenuOpen(!isSidebarMenuOpen)} className="text-[#8696a0] hover:bg-white/5 p-1.5 md:p-2 rounded-full hover:text-[#00a884]">
                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
             </button>
             {isSidebarMenuOpen && (
@@ -147,13 +147,13 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       {activeTab === 'chats' ? (
         <>
           {/* Search */}
-          <div className="p-2 px-3">
-            <div className="flex items-center rounded-lg px-3 py-1.5 gap-4" style={{ backgroundColor: isDarkMode ? '#202c33' : '#f0f2f5' }}>
+          <div className="p-2 px-2 md:px-3">
+            <div className="flex items-center rounded-lg px-2 md:px-3 py-1.5 gap-2 md:gap-4" style={{ backgroundColor: isDarkMode ? '#202c33' : '#f0f2f5' }}>
               <svg className="text-[#8696a0]" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input 
                 type="text" 
                 placeholder="Search or start new chat" 
-                className="bg-transparent border-none outline-none w-full py-0.5 text-sm placeholder-[#8696a0]"
+                className="bg-transparent border-none outline-none w-full py-0.5 text-xs md:text-sm placeholder-[#8696a0]"
                 style={{ color: colors.textPrimary }}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -174,27 +174,27 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 <div 
                   key={chat.id} 
                   onClick={() => onSelectChat(chat.id)}
-                  className={`flex p-3 px-4 cursor-pointer items-center transition-colors border-b ${isActive ? '' : 'hover:bg-black/5'}`}
+                  className={`flex p-2 md:p-3 px-3 md:px-4 cursor-pointer items-center transition-colors border-b ${isActive ? '' : 'hover:bg-black/5'}`}
                   style={{ 
                     backgroundColor: isActive ? colors.active : 'transparent',
                     borderColor: isDarkMode ? '#222d34' : '#f0f2f5',
                   }}
                 >
                   <div className="relative">
-                    <img src={avatar} alt={name} className="w-12 h-12 rounded-full mr-4 object-cover border border-white/10" />
+                    <img src={avatar} alt={name} className="w-11 h-11 md:w-12 md:h-12 rounded-full mr-3 md:mr-4 object-cover border border-white/10" />
                     {otherUser?.status === 'online' && (
-                      <div className="absolute bottom-0 right-4 w-3.5 h-3.5 bg-[#00a884] rounded-full border-2 border-[#111b21]"></div>
+                      <div className="absolute bottom-0 right-3 md:right-4 w-3 h-3 md:w-3.5 md:h-3.5 bg-[#00a884] rounded-full border-2 border-[#111b21]"></div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-1">
-                      <h3 className="font-semibold truncate" style={{ color: colors.textPrimary }}>{name}</h3>
-                      <span className="text-xs" style={{ color: colors.textSecondary }}>
+                      <h3 className="font-semibold truncate text-sm md:text-base" style={{ color: colors.textPrimary }}>{name}</h3>
+                      <span className="text-[10px] md:text-xs" style={{ color: colors.textSecondary }}>
                         {lastMsg ? new Date(lastMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <p className="text-sm truncate flex-1" style={{ color: colors.textSecondary }}>
+                      <p className="text-xs md:text-sm truncate flex-1" style={{ color: colors.textSecondary }}>
                         {lastMsg?.type === 'text' ? lastMsg.content : lastMsg ? `Sent a ${lastMsg?.type}` : 'No messages yet'}
                       </p>
                     </div>

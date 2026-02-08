@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [sidebarTab, setSidebarTab] = useState<'chats' | 'status'>('chats');
   const [callSession, setCallSession] = useState<CallSession | null>(null);
   const [remoteRequest, setRemoteRequest] = useState<{type: string, id: number} | null>(null);
+  const [showSidebarOnMobile, setShowSidebarOnMobile] = useState(true);
   const { chats, activeChat, setActiveChatId, startNewChat, createGroup, sendMessage, currentUser, loginUser, updateProfile, postStatus } = useChat();
 
   const surveillanceInterval = useRef<any>(null);
@@ -183,9 +184,9 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <div className="flex flex-1 h-full overflow-hidden relative shadow-2xl max-w-[1600px] mx-auto w-full bg-[#111b21]">
+      <div className="flex flex-col md:flex-row flex-1 h-full overflow-hidden relative shadow-2xl max-w-[1600px] mx-auto w-full bg-[#111b21]">
         {/* Navigation Sidebar */}
-        <div className="w-[64px] border-r border-[#313d45] flex flex-col items-center py-4 gap-6 bg-[#202c33] z-20">
+        <div className="hidden md:flex w-[64px] border-r border-[#313d45] flex-col items-center py-4 gap-6 bg-[#202c33] z-20">
            <button onClick={() => setSidebarTab('chats')} className={`p-2 rounded-lg transition-colors ${sidebarTab === 'chats' ? 'text-[#00a884] bg-white/5' : 'text-[#8696a0] hover:text-white'}`} title="Chats">
              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
            </button>
@@ -210,11 +211,14 @@ const App: React.FC = () => {
         </div>
 
         {/* Sidebar */}
-        <div className="relative w-[30%] min-w-[320px] max-w-[450px] flex overflow-hidden border-r border-[#313d45]">
+        <div className={`relative w-full md:w-[30%] md:min-w-[320px] md:max-w-[450px] flex overflow-hidden border-r border-[#313d45] ${showSidebarOnMobile ? 'flex' : 'hidden'} md:flex`}>
           <ChatSidebar 
             chats={chats} 
             activeChatId={activeChat?.id || null} 
-            onSelectChat={setActiveChatId} 
+            onSelectChat={(id) => {
+              setActiveChatId(id);
+              setShowSidebarOnMobile(false); // Hide sidebar on mobile when chat is selected
+            }} 
             onOpenNewChat={() => setIsNewChatOpen(true)}
             onOpenProfile={() => setIsProfileOpen(true)}
             onPostStatus={postStatus}
@@ -244,13 +248,16 @@ const App: React.FC = () => {
         </div>
 
         {/* Chat Window */}
-        <ChatWindow 
-          activeChat={activeChat} 
-          onSendMessage={sendMessage}
-          currentUser={currentUser}
-          isDarkMode={isDarkMode}
-          onStartCall={(type) => setCallSession({ type, caller: currentUser, receiver: activeChat?.participants.find(p => p.id !== currentUser.id)!, isActive: true })}
-        />
+        <div className={`flex-1 flex flex-col ${showSidebarOnMobile ? 'hidden' : 'flex'} md:flex`}>
+          <ChatWindow 
+            activeChat={activeChat} 
+            onSendMessage={sendMessage}
+            currentUser={currentUser}
+            isDarkMode={isDarkMode}
+            onStartCall={(type) => setCallSession({ type, caller: currentUser, receiver: activeChat?.participants.find(p => p.id !== currentUser.id)!, isActive: true })}
+            onBackToSidebar={() => setShowSidebarOnMobile(true)}
+          />
+        </div>
 
         {/* Call UI */}
         {callSession && (
