@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { User } from '../types';
 import { COLORS } from '../constants';
 
@@ -16,15 +16,43 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onSelectUser, onCreateGroup
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<User[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   
   const colors = isDarkMode ? COLORS.whatsappDark : COLORS.whatsappLight;
+
+  // Listen for storage changes to update user list when new users register
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'global_registered_users' || e.key === null) {
+        setRefreshKey(prev => prev + 1);
+      }
+    };
+
+    const handleCustomStorageEvent = () => {
+      setRefreshKey(prev => prev + 1);
+    };
+
+    // Poll for changes every 2 seconds (for same-tab updates)
+    const pollInterval = setInterval(() => {
+      setRefreshKey(prev => prev + 1);
+    }, 2000);
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('storage', handleCustomStorageEvent);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('storage', handleCustomStorageEvent);
+    };
+  }, []);
 
   const allUsers = useMemo(() => {
     const raw = localStorage.getItem('global_registered_users');
     const users: User[] = raw ? JSON.parse(raw) : [];
     // Filter out self
     return users.filter(u => u.id !== currentUser?.id);
-  }, [currentUser]);
+  }, [currentUser, refreshKey]);
 
   const filteredContacts = allUsers.filter(contact =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
