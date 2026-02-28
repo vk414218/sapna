@@ -56,7 +56,8 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onSelectUser, onCreateGroup
 
   const filteredContacts = allUsers.filter(contact =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.phone.includes(searchQuery)
+    contact.phone.includes(searchQuery) ||
+    String(contact.id).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const toggleMember = (user: User) => {
@@ -94,7 +95,7 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onSelectUser, onCreateGroup
                 <input 
                   autoFocus
                   type="text" 
-                  placeholder="Search name or mobile number..." 
+                  placeholder="Search name, ID or mobile number..." 
                   className="bg-transparent border-none outline-none w-full py-0.5 text-sm placeholder-[#8696a0]"
                   style={{ color: colors.textPrimary }}
                   value={searchQuery}
@@ -124,6 +125,7 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onSelectUser, onCreateGroup
                 <img src={contact.avatar} className="w-12 h-12 rounded-full mr-4" />
                 <div className="flex flex-col">
                   <h3 className="font-medium" style={{ color: colors.textPrimary }}>{contact.name}</h3>
+                  <p className="text-xs opacity-60" style={{ color: colors.textSecondary }}>ID: {contact.id}</p>
                   <p className="text-xs opacity-60" style={{ color: colors.textSecondary }}>{contact.phone}</p>
                 </div>
               </div>
