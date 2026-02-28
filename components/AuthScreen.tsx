@@ -24,7 +24,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin, isDarkMode }) => {
       
       if (!user) {
         user = {
-          id: `user-${Date.now()}`,
+          id: `user-${trimmedPhone.replace(/[^a-zA-Z0-9]/g, '') || `t${Date.now()}`}`,
           name: name.trim(),
           phone: trimmedPhone,
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name.trim()}`,
