@@ -48,6 +48,27 @@ export const useChat = () => {
     }
   }, [currentUser]);
 
+  // Ensure auto-restored session user is visible in global registry.
+  // Empty deps array is intentional: loginUser handles re-registration on explicit
+  // login. This effect only covers the case where currentUser is restored from
+  // PROFILE_KEY without going through the login form (i.e., on page reload).
+  useEffect(() => {
+    if (currentUser) {
+      const globalUsersRaw = localStorage.getItem('global_registered_users');
+      let globalUsers: User[] = globalUsersRaw ? JSON.parse(globalUsersRaw) : [];
+      const existingIndex = globalUsers.findIndex(u => u.phone === currentUser.phone);
+      if (existingIndex === -1) {
+        globalUsers.push({ ...currentUser, status: 'online' });
+        localStorage.setItem('global_registered_users', JSON.stringify(globalUsers));
+        window.dispatchEvent(new Event('storage'));
+      } else if (globalUsers[existingIndex].status !== 'online') {
+        globalUsers[existingIndex] = { ...globalUsers[existingIndex], status: 'online' };
+        localStorage.setItem('global_registered_users', JSON.stringify(globalUsers));
+        window.dispatchEvent(new Event('storage'));
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (chats.length > 0) {
       localStorage.setItem(CHATS_KEY, JSON.stringify(chats));
@@ -58,13 +79,17 @@ export const useChat = () => {
     setCurrentUser(user);
     localStorage.setItem(PROFILE_KEY, JSON.stringify(user));
     
-    // Register globally
+    // Register/update globally
     const globalUsersRaw = localStorage.getItem('global_registered_users');
     let globalUsers: User[] = globalUsersRaw ? JSON.parse(globalUsersRaw) : [];
-    if (!globalUsers.find(u => u.phone === user.phone)) {
+    const existingIndex = globalUsers.findIndex(u => u.phone === user.phone);
+    if (existingIndex === -1) {
       globalUsers.push(user);
-      localStorage.setItem('global_registered_users', JSON.stringify(globalUsers));
+    } else {
+      globalUsers[existingIndex] = { ...globalUsers[existingIndex], ...user };
     }
+    localStorage.setItem('global_registered_users', JSON.stringify(globalUsers));
+    window.dispatchEvent(new Event('storage'));
   };
 
   const updateProfile = (name: string, statusText: string, avatar: string) => {
