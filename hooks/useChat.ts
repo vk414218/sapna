@@ -3,6 +3,9 @@ import { useState, useCallback, useEffect } from 'react';
 import { User, Message, Chat } from '../types';
 import { AI_USER } from '../constants';
 import { geminiService } from '../services/geminiService';
+import {
+  saveUserGlobally,
+} from '../services/firebaseService';
 
 const CHATS_KEY = 'gemini_chat_data';
 const PROFILE_KEY = 'gemini_current_profile';
@@ -37,7 +40,7 @@ export const useChat = () => {
           id: 'm1',
           senderId: 'gemini-ai',
           receiverId: currentUser.id,
-          content: `Hi ${currentUser.name}! I'm your Gemini assistant. Search for other users by name or number to start chatting!`,
+          content: `Hi ${currentUser.name}! I'm your Gemini assistant. Search for other users by name, @username or number to start chatting!`,
           timestamp: Date.now(),
           status: 'read',
           type: 'text',
@@ -48,24 +51,10 @@ export const useChat = () => {
     }
   }, [currentUser]);
 
-  // Ensure auto-restored session user is visible in global registry.
-  // Empty deps array is intentional: loginUser handles re-registration on explicit
-  // login. This effect only covers the case where currentUser is restored from
-  // PROFILE_KEY without going through the login form (i.e., on page reload).
+  // Re-register session user on page reload so they stay visible in the global registry.
   useEffect(() => {
     if (currentUser) {
-      const globalUsersRaw = localStorage.getItem('global_registered_users');
-      let globalUsers: User[] = globalUsersRaw ? JSON.parse(globalUsersRaw) : [];
-      const existingIndex = globalUsers.findIndex(u => u.phone === currentUser.phone);
-      if (existingIndex === -1) {
-        globalUsers.push({ ...currentUser, status: 'online' });
-        localStorage.setItem('global_registered_users', JSON.stringify(globalUsers));
-        window.dispatchEvent(new Event('storage'));
-      } else if (globalUsers[existingIndex].status !== 'online') {
-        globalUsers[existingIndex] = { ...globalUsers[existingIndex], status: 'online' };
-        localStorage.setItem('global_registered_users', JSON.stringify(globalUsers));
-        window.dispatchEvent(new Event('storage'));
-      }
+      saveUserGlobally({ ...currentUser, status: 'online' }).catch(console.error);
     }
   }, []);
 
@@ -75,51 +64,27 @@ export const useChat = () => {
     }
   }, [chats]);
 
-  const loginUser = (user: User) => {
-    setCurrentUser(user);
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(user));
-    
-    // Register/update globally
-    const globalUsersRaw = localStorage.getItem('global_registered_users');
-    let globalUsers: User[] = globalUsersRaw ? JSON.parse(globalUsersRaw) : [];
-    const existingIndex = globalUsers.findIndex(u => u.phone === user.phone);
-    if (existingIndex === -1) {
-      globalUsers.push(user);
-    } else {
-      globalUsers[existingIndex] = { ...globalUsers[existingIndex], ...user };
-    }
-    localStorage.setItem('global_registered_users', JSON.stringify(globalUsers));
-    window.dispatchEvent(new Event('storage'));
+  const loginUser = async (user: User) => {
+    const onlineUser = { ...user, status: 'online' as const };
+    setCurrentUser(onlineUser);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(onlineUser));
+    await saveUserGlobally(onlineUser);
   };
 
-  const updateProfile = (name: string, statusText: string, avatar: string) => {
+  const updateProfile = async (name: string, statusText: string, avatar: string) => {
     if (!currentUser) return;
     const updated = { ...currentUser, name, story: statusText, avatar };
     setCurrentUser(updated);
     localStorage.setItem(PROFILE_KEY, JSON.stringify(updated));
-    
-    // Update global registry
-    const globalUsersRaw = localStorage.getItem('global_registered_users');
-    if (globalUsersRaw) {
-      let globalUsers: User[] = JSON.parse(globalUsersRaw);
-      globalUsers = globalUsers.map(u => u.phone === currentUser.phone ? updated : u);
-      localStorage.setItem('global_registered_users', JSON.stringify(globalUsers));
-    }
+    await saveUserGlobally(updated);
   };
 
-  const postStatus = (imageData: string) => {
+  const postStatus = async (imageData: string) => {
     if (!currentUser) return;
     const updated = { ...currentUser, story: imageData };
     setCurrentUser(updated);
     localStorage.setItem(PROFILE_KEY, JSON.stringify(updated));
-    
-    // Update global registry
-    const globalUsersRaw = localStorage.getItem('global_registered_users');
-    if (globalUsersRaw) {
-      let globalUsers: User[] = JSON.parse(globalUsersRaw);
-      globalUsers = globalUsers.map(u => u.phone === currentUser.phone ? updated : u);
-      localStorage.setItem('global_registered_users', JSON.stringify(globalUsers));
-    }
+    await saveUserGlobally(updated);
   };
 
   const activeChat = chats.find(c => c.id === activeChatId) || null;
@@ -228,6 +193,6 @@ export const useChat = () => {
     currentUser,
     loginUser,
     updateProfile,
-    postStatus
+    postStatus,
   };
 };
