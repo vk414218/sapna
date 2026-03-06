@@ -44,15 +44,14 @@ const firebaseConfig = {
   measurementId:     (import.meta.env.VITE_FIREBASE_MEASUREMENT_ID     as string | undefined) ?? 'G-KE7659QK44',
 };
 
-// The config is always complete now (built-in defaults ensure all fields are set).
-export const isFirebaseConfigured: boolean = true;
-
 let app: FirebaseApp | null = null;
 let db: Database | null = null;
+let _firebaseWorking = false;
 
 try {
   app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
   db = getDatabase(app);
+  _firebaseWorking = true;
 
   // Initialize Analytics only in browser environments that support it
   if (typeof window !== 'undefined') {
@@ -61,6 +60,9 @@ try {
 } catch (e) {
   console.error('[Firebase] Initialization failed:', e);
 }
+
+// True when Firebase initialized successfully (db is not null).
+export const isFirebaseConfigured: boolean = _firebaseWorking;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -78,53 +80,76 @@ function userKey(phone: string): string {
 
 /**
  * Save (or update) a user in Firebase Realtime Database.
- * Falls back to localStorage when Firebase is not configured.
+ * Falls back to localStorage when Firebase is not configured or unavailable.
  */
 export async function saveUserGlobally(user: User): Promise<void> {
   if (!db) {
     _localSave(user);
     return;
   }
-  const userRef = ref(db, `${USERS_PATH}/${userKey(user.phone)}`);
-  await set(userRef, {
-    ...user,
-    // Never persist geolocation to a shared DB
-    location: null,
-  });
+  try {
+    const userRef = ref(db, `${USERS_PATH}/${userKey(user.phone)}`);
+    await set(userRef, {
+      ...user,
+      // Never persist geolocation to a shared DB
+      location: null,
+    });
+  } catch (e) {
+    console.warn('[Firebase] saveUserGlobally failed, falling back to localStorage:', e);
+    _localSave(user);
+  }
 }
 
 /**
  * Retrieve a single user by phone number.
+ * Falls back to localStorage when Firebase is not configured or unavailable.
  */
 export async function getUserByPhone(phone: string): Promise<User | null> {
   if (!db) return _localGetByPhone(phone);
-  const userRef = ref(db, `${USERS_PATH}/${userKey(phone)}`);
-  const snap = await get(userRef);
-  return snap.exists() ? (snap.val() as User) : null;
+  try {
+    const userRef = ref(db, `${USERS_PATH}/${userKey(phone)}`);
+    const snap = await get(userRef);
+    return snap.exists() ? (snap.val() as User) : null;
+  } catch (e) {
+    console.warn('[Firebase] getUserByPhone failed, falling back to localStorage:', e);
+    return _localGetByPhone(phone);
+  }
 }
 
 /**
  * Retrieve a single user by username (exact match, case-insensitive).
+ * Falls back to localStorage when Firebase is not configured or unavailable.
  */
 export async function getUserByUsername(username: string): Promise<User | null> {
   if (!db) return _localGetByUsername(username);
-  const usersRef = ref(db, USERS_PATH);
-  const q = query(usersRef, orderByChild('username'), equalTo(username.toLowerCase()));
-  const snap = await get(q);
-  if (!snap.exists()) return null;
-  const vals = Object.values(snap.val() as Record<string, User>);
-  return vals[0] ?? null;
+  try {
+    const usersRef = ref(db, USERS_PATH);
+    const q = query(usersRef, orderByChild('username'), equalTo(username.toLowerCase()));
+    const snap = await get(q);
+    if (!snap.exists()) return null;
+    const vals = Object.values(snap.val() as Record<string, User>);
+    return vals[0] ?? null;
+  } catch (e) {
+    console.warn('[Firebase] getUserByUsername failed, falling back to localStorage:', e);
+    return _localGetByUsername(username);
+  }
 }
 
 /**
  * Fetch all registered users once.
+ * Falls back to localStorage when Firebase is not configured or unavailable.
  */
 export async function getAllUsers(): Promise<User[]> {
   if (!db) return _localGetAll();
-  const usersRef = ref(db, USERS_PATH);
-  const snap = await get(usersRef);
-  if (!snap.exists()) return [];
-  return Object.values(snap.val() as Record<string, User>);
+  try {
+    const usersRef = ref(db, USERS_PATH);
+    const snap = await get(usersRef);
+    if (!snap.exists()) return [];
+    return Object.values(snap.val() as Record<string, User>);
+  } catch (e) {
+    console.warn('[Firebase] getAllUsers failed, falling back to localStorage:', e);
+    return _localGetAll();
+  }
 }
 
 /**
@@ -145,20 +170,41 @@ export function subscribeToUsers(callback: (users: User[]) => void): () => void 
     };
   }
   const usersRef = ref(db, USERS_PATH);
-  onValue(usersRef, (snap) => {
-    if (!snap.exists()) { callback([]); return; }
-    callback(Object.values(snap.val() as Record<string, User>));
-  });
+  try {
+    onValue(
+      usersRef,
+      (snap) => {
+        if (!snap.exists()) { callback([]); return; }
+        callback(Object.values(snap.val() as Record<string, User>));
+      },
+      (error) => {
+        console.warn('[Firebase] subscribeToUsers failed, falling back to localStorage:', error);
+        off(usersRef);
+        callback(_localGetAll());
+      },
+    );
+  } catch (e) {
+    console.warn('[Firebase] subscribeToUsers setup failed, falling back to localStorage:', e);
+    off(usersRef);
+    callback(_localGetAll());
+    return () => {};
+  }
   return () => off(usersRef);
 }
 
 /**
  * Mark a user online/offline in Firebase.
+ * Falls back to localStorage when Firebase is not configured or unavailable.
  */
 export async function setUserStatus(phone: string, status: 'online' | 'offline'): Promise<void> {
   if (!db) { _localSetStatus(phone, status); return; }
-  const userRef = ref(db, `${USERS_PATH}/${userKey(phone)}`);
-  await update(userRef, { status });
+  try {
+    const userRef = ref(db, `${USERS_PATH}/${userKey(phone)}`);
+    await update(userRef, { status });
+  } catch (e) {
+    console.warn('[Firebase] setUserStatus failed, falling back to localStorage:', e);
+    _localSetStatus(phone, status);
+  }
 }
 
 // ---------------------------------------------------------------------------
