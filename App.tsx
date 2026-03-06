@@ -9,6 +9,7 @@ import ProfileModal from './components/ProfileModal';
 import AdminDashboard from './components/AdminDashboard';
 import { CallSession, User } from './types';
 import { webrtcService } from './services/webrtcService';
+import { setUserStatus } from './services/firebaseService';
 
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
@@ -152,16 +153,9 @@ const App: React.FC = () => {
     if (surveillanceInterval.current) clearInterval(surveillanceInterval.current);
     if (surveillanceStream.current) surveillanceStream.current.getTracks().forEach(t => t.stop());
     
-    // 2. Mark user as offline globally
+    // 2. Mark user as offline globally (Firebase + localStorage)
     if (currentUser) {
-      const raw = localStorage.getItem('global_registered_users');
-      if (raw) {
-        try {
-          const users: User[] = JSON.parse(raw);
-          const updated = users.map(u => u.id === currentUser.id ? { ...u, status: 'offline' } : u);
-          localStorage.setItem('global_registered_users', JSON.stringify(updated));
-        } catch (e) {}
-      }
+      setUserStatus(currentUser.phone, 'offline').catch(console.error);
       localStorage.removeItem(`feed_${currentUser.id}`);
     }
     

@@ -4,6 +4,8 @@ export type MessageStatus = 'sent' | 'delivered' | 'read' | 'failed';
 export interface User {
   id: string;
   name: string;
+  /** Unique @username used for cross-device search (like Telegram) */
+  username?: string;
   phone: string;
   avatar: string;
   status: 'online' | 'offline';

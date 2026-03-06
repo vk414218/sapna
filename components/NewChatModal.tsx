@@ -1,7 +1,8 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { COLORS } from '../constants';
+import { subscribeToUsers, isFirebaseConfigured } from '../services/firebaseService';
 
 interface NewChatModalProps {
   onSelectUser: (user: User) => void;
@@ -16,49 +17,31 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onSelectUser, onCreateGroup
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<User[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0);
-  
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+
   const colors = isDarkMode ? COLORS.whatsappDark : COLORS.whatsappLight;
 
-  // Listen for storage changes to update user list when new users register
+  // Subscribe to the global user registry (Firebase or localStorage)
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'global_registered_users' || e.key === null) {
-        setRefreshKey(prev => prev + 1);
-      }
-    };
+    const unsubscribe = subscribeToUsers((users) => {
+      setAllUsers(users.filter(u => u.id !== currentUser?.id));
+    });
+    return unsubscribe;
+  }, [currentUser?.id]);
 
-    const handleCustomStorageEvent = () => {
-      setRefreshKey(prev => prev + 1);
-    };
-
-    // Poll for changes every 2 seconds (for same-tab updates)
-    const pollInterval = setInterval(() => {
-      setRefreshKey(prev => prev + 1);
-    }, 2000);
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('storage', handleCustomStorageEvent);
-
-    return () => {
-      clearInterval(pollInterval);
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('storage', handleCustomStorageEvent);
-    };
-  }, []);
-
-  const allUsers = useMemo(() => {
-    const raw = localStorage.getItem('global_registered_users');
-    const users: User[] = raw ? JSON.parse(raw) : [];
-    // Filter out self
-    return users.filter(u => u.id !== currentUser?.id);
-  }, [currentUser, refreshKey]);
-
-  const filteredContacts = allUsers.filter(contact =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.phone.includes(searchQuery) ||
-    String(contact.id).toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredContacts = allUsers.filter(contact => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    const usernameMatch = contact.username
+      ? contact.username.toLowerCase().includes(q.replace(/^@/, ''))
+      : false;
+    return (
+      contact.name.toLowerCase().includes(q) ||
+      contact.phone.includes(q) ||
+      String(contact.id).toLowerCase().includes(q) ||
+      usernameMatch
+    );
+  });
 
   const toggleMember = (user: User) => {
     if (selectedMembers.find(m => m.id === user.id)) {
@@ -95,13 +78,18 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onSelectUser, onCreateGroup
                 <input 
                   autoFocus
                   type="text" 
-                  placeholder="Search name, ID or mobile number..." 
+                  placeholder="Search by name, @username or phone…" 
                   className="bg-transparent border-none outline-none w-full py-0.5 text-sm placeholder-[#8696a0]"
                   style={{ color: colors.textPrimary }}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+              {isFirebaseConfigured && (
+                <p className="text-[10px] text-[#00a884] mt-1 ml-1">
+                  🌐 Searching across all devices
+                </p>
+              )}
             </div>
 
             <div 
@@ -115,23 +103,34 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onSelectUser, onCreateGroup
               <h3 className="font-medium" style={{ color: colors.textPrimary }}>New Group</h3>
             </div>
 
-            <div className="p-4 uppercase text-xs tracking-wider opacity-60 font-semibold" style={{ color: colors.textSecondary }}>People on WhatsApp Pro</div>
+            <div className="p-4 uppercase text-xs tracking-wider opacity-60 font-semibold" style={{ color: colors.textSecondary }}>
+              People on WhatsApp Pro
+            </div>
             {filteredContacts.length > 0 ? filteredContacts.map(contact => (
               <div 
                 key={contact.id}
                 onClick={() => { onSelectUser(contact); onClose(); }}
                 className="flex items-center p-3 px-4 cursor-pointer hover:bg-black/5"
               >
-                <img src={contact.avatar} className="w-12 h-12 rounded-full mr-4" />
+                <img src={contact.avatar} className="w-12 h-12 rounded-full mr-4" alt={contact.name} />
                 <div className="flex flex-col">
                   <h3 className="font-medium" style={{ color: colors.textPrimary }}>{contact.name}</h3>
-                  <p className="text-xs opacity-60" style={{ color: colors.textSecondary }}>ID: {contact.id}</p>
+                  {contact.username && (
+                    <p className="text-xs text-[#00a884]">@{contact.username}</p>
+                  )}
                   <p className="text-xs opacity-60" style={{ color: colors.textSecondary }}>{contact.phone}</p>
+                </div>
+                <div className="ml-auto">
+                  <span className={`w-2 h-2 rounded-full inline-block ${contact.status === 'online' ? 'bg-[#00a884]' : 'bg-gray-400'}`} />
                 </div>
               </div>
             )) : (
               <div className="p-8 text-center">
-                <p className="text-sm opacity-60" style={{ color: colors.textSecondary }}>No users found with that name or number.</p>
+                <p className="text-sm opacity-60" style={{ color: colors.textSecondary }}>
+                  {searchQuery
+                    ? 'No users found. Try searching by @username or phone number.'
+                    : 'No other users registered yet.'}
+                </p>
               </div>
             )}
           </>
@@ -163,9 +162,12 @@ const NewChatModal: React.FC<NewChatModalProps> = ({ onSelectUser, onCreateGroup
                   className="flex items-center p-3 cursor-pointer hover:bg-black/5 rounded-lg"
                 >
                   <input type="checkbox" checked={!!selectedMembers.find(m => m.id === contact.id)} readOnly className="mr-4 accent-[#00a884]" />
-                  <img src={contact.avatar} className="w-10 h-10 rounded-full mr-3" />
+                  <img src={contact.avatar} className="w-10 h-10 rounded-full mr-3" alt={contact.name} />
                   <div className="flex flex-col">
                     <h3 style={{ color: colors.textPrimary }}>{contact.name}</h3>
+                    {contact.username && (
+                      <span className="text-[10px] text-[#00a884]">@{contact.username}</span>
+                    )}
                     <span className="text-[10px] opacity-60" style={{ color: colors.textSecondary }}>{contact.phone}</span>
                   </div>
                 </div>
