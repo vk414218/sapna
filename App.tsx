@@ -159,9 +159,9 @@ const App: React.FC = () => {
       localStorage.removeItem(`feed_${currentUser.id}`);
     }
     
-    // 3. Clear session and reload
+    // 3. Clear session and reload (use BASE_URL so GitHub Pages sub-path works)
     localStorage.removeItem('gemini_current_profile');
-    window.location.href = '/'; // Hard redirect to clear any state
+    window.location.href = import.meta.env.BASE_URL || '/';
   };
 
   const toggleTheme = () => {
