@@ -12,37 +12,54 @@ import {
   orderByChild,
   equalTo,
 } from 'firebase/database';
+import { getAnalytics } from 'firebase/analytics';
 import { User } from '../types';
 
 // ---------------------------------------------------------------------------
 // Firebase configuration
-// Load from Vite env vars (VITE_FIREBASE_*).  See .env.example for the
-// required keys.  When the database URL is not provided the service gracefully
-// falls back to localStorage so the app still works on a single device.
+//
+// The built-in values below belong to the project "vishal-b6def" and are
+// safe to embed (Firebase web API keys are public by design; security is
+// enforced via Firebase Security Rules, not by keeping the key secret).
+//
+// Any VITE_FIREBASE_* environment variable takes precedence over the built-in
+// value, so you can override individual fields via a .env file if needed.
+// See .env.example for the full list of available variables.
+//
+// IMPORTANT – Realtime Database setup:
+//   Go to Firebase console → Build → Realtime Database → Create Database
+//   and set the security rules to allow read/write during development:
+//     { "rules": { ".read": true, ".write": true } }
 // ---------------------------------------------------------------------------
 const firebaseConfig = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY            as string | undefined,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN        as string | undefined,
-  databaseURL:       import.meta.env.VITE_FIREBASE_DATABASE_URL       as string | undefined,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID         as string | undefined,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET     as string | undefined,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string | undefined,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID             as string | undefined,
+  apiKey:            (import.meta.env.VITE_FIREBASE_API_KEY            as string | undefined) ?? 'AIzaSyBCqQkfoLOXzpPTir2U5j1N7Yz0MtZtkFk',
+  authDomain:        (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN        as string | undefined) ?? 'vishal-b6def.firebaseapp.com',
+  // Standard Realtime Database URL for the vishal-b6def project (us-central1 region).
+  // If you created the database in a different region update VITE_FIREBASE_DATABASE_URL.
+  databaseURL:       (import.meta.env.VITE_FIREBASE_DATABASE_URL       as string | undefined) ?? 'https://vishal-b6def-default-rtdb.firebaseio.com',
+  projectId:         (import.meta.env.VITE_FIREBASE_PROJECT_ID         as string | undefined) ?? 'vishal-b6def',
+  storageBucket:     (import.meta.env.VITE_FIREBASE_STORAGE_BUCKET     as string | undefined) ?? 'vishal-b6def.firebasestorage.app',
+  messagingSenderId: (import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string | undefined) ?? '684833400978',
+  appId:             (import.meta.env.VITE_FIREBASE_APP_ID             as string | undefined) ?? '1:684833400978:web:7d5a9b7e5baf5b281d9e4b',
+  measurementId:     (import.meta.env.VITE_FIREBASE_MEASUREMENT_ID     as string | undefined) ?? 'G-KE7659QK44',
 };
 
-export const isFirebaseConfigured: boolean =
-  !!firebaseConfig.apiKey && !!firebaseConfig.databaseURL;
+// The config is always complete now (built-in defaults ensure all fields are set).
+export const isFirebaseConfigured: boolean = true;
 
 let app: FirebaseApp | null = null;
 let db: Database | null = null;
 
-if (isFirebaseConfigured) {
-  try {
-    app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-    db = getDatabase(app);
-  } catch (e) {
-    console.error('[Firebase] Initialization failed:', e);
+try {
+  app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  db = getDatabase(app);
+
+  // Initialize Analytics only in browser environments that support it
+  if (typeof window !== 'undefined') {
+    getAnalytics(app);
   }
+} catch (e) {
+  console.error('[Firebase] Initialization failed:', e);
 }
 
 // ---------------------------------------------------------------------------
